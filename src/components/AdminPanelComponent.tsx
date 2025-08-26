@@ -130,6 +130,16 @@ export function AdminPanelComponent({ onBack }: AdminPanelProps) {
     // Aquí iría la lógica para crear el curso
     console.log('Creando curso:', newCourse)
     // Reset form
+    const formData = new FormData()
+    formData.append('title', newCourse.title)
+    formData.append('description', newCourse.description)
+    formData.append('instructor', newCourse.instructor)
+    formData.append('category', newCourse.category)
+    formData.append('duration', newCourse.duration)
+    formData.append('difficulty', newCourse.difficulty)
+    if (selectedFile) {
+      formData.append('file', selectedFile)
+    }
     setNewCourse({
       title: '',
       description: '',
@@ -138,6 +148,15 @@ export function AdminPanelComponent({ onBack }: AdminPanelProps) {
       duration: '',
       difficulty: 'Básico'
     })
+    setSelectedFile(null)
+  }
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setSelectedFile(e.target.files[0])
+    }
   }
 
   return (
@@ -509,10 +528,23 @@ export function AdminPanelComponent({ onBack }: AdminPanelProps) {
                     <Plus className="h-4 w-4 mr-2" />
                     Crear Curso
                   </Button>
-                  <Button type="button" variant="outline">
+                  <label>
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileChange}
+                  accept=".pdf,.doc,.docx,.ppt,.pptx"
+                />
+                <Button type="button" variant="outline" asChild>
+                  <span>
                     <Upload className="h-4 w-4 mr-2" />
-                    Subir Contenido
-                  </Button>
+                    Subir Documento
+                  </span>
+                </Button>
+                {selectedFile && (
+                  <span className="ml-2 text-sm text-gray-600">{selectedFile.name}</span>
+                )}
+              </label>
                 </div>
               </form>
             </div>

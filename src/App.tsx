@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { AuthProvider, useAuth } from './hooks/useAuth'
 import { LoginForm } from './components/LoginForm'
 import { DashboardComponent } from './components/DashboardComponent'
 import { CourseDetail } from './components/CourseDetail'
@@ -6,94 +7,74 @@ import { UserProfileComponent } from './components/UserProfileComponent'
 import { AdminPanelComponent } from './components/AdminPanelComponent'
 import { Notifications } from './components/Notifications'
 import { Toaster, toast } from 'sonner@2.0.3'
-import { Bell, User, BookOpen, Settings, LogOut, Home } from 'lucide-react'
+import { Bell, User, BookOpen, Settings, LogOut, Home, Wifi, WifiOff } from 'lucide-react'
+import { useNotifications } from './hooks/useApiData'
+import apiService from './services/api'
 
-// Datos mockeados
-const mockUsers = {
-  student: {
-    id: '1',
-    email: 'estudiante@empresa.com',
-    name: 'María González',
-    role: 'student',
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b332c8de?w=100&h=100&fit=crop&crop=face',
-    completedCourses: 12,
-    totalBadges: 8,
-    currentStreak: 15,
-    badges: [
-      { id: '1', name: 'Novato', description: 'Completa tu primer curso', icon: '🎯', earned: true, earnedDate: '2024-01-15' },
-      { id: '2', name: 'Experto en Seguridad', description: 'Completa 5 cursos de seguridad', icon: '🛡️', earned: true, earnedDate: '2024-02-20' },
-      { id: '3', name: 'Comunicador', description: 'Completa cursos de comunicación', icon: '💬', earned: true, earnedDate: '2024-03-10' }
-    ]
-  },
-  admin: {
-    id: '2',
-    email: 'admin@empresa.com',
-    name: 'Carlos Ramírez',
-    role: 'admin',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'
-  }
-}
-
-const mockNotifications = [
-  {
-    id: '1',
-    title: 'Nuevo curso disponible: Liderazgo Digital',
-    message: 'Un nuevo curso sobre liderazgo en la era digital está disponible.',
-    read: false,
-    createdAt: '2024-08-20T10:00:00Z',
-    type: 'new_course'
-  },
-  {
-    id: '2',
-    title: '¡Felicidades! Has ganado una nueva insignia',
-    message: 'Has completado el curso de Comunicación Efectiva y ganado la insignia "Comunicador".',
-    read: false,
-    createdAt: '2024-08-19T15:30:00Z',
-    type: 'badge_earned'
-  },
-  {
-    id: '3',
-    title: 'Recordatorio: Completa tu curso',
-    message: 'Te queda 1 capítulo para completar "Gestión del Tiempo".',
-    read: true,
-    createdAt: '2024-08-18T09:00:00Z',
-    type: 'reminder'
-  }
-]
-
-export default function App() {
-  const [user, setUser] = useState(null)
-  const [userData, setUserData] = useState(null)
-  const [loading, setLoading] = useState(true)
+// Componente principal de la aplicación
+function AppContent() {
+  const { user, loading: authLoading, isAuthenticated, logout } = useAuth()
   const [currentView, setCurrentView] = useState('dashboard')
   const [selectedCourseId, setSelectedCourseId] = useState(null)
-  const [notifications, setNotifications] = useState(mockNotifications)
+  const [isOnline, setIsOnline] = useState(true)
+  
+  // Hook para notificaciones solo si está autenticado
+  const { 
+    notifications, 
+    unreadCount, 
+    loading: notificationsLoading,
+    markAsRead,
+    markAllAsRead,
+    refetch: refetchNotifications
+  } = useNotifications(isAuthenticated ? {} : { skip: true })
 
+  // Verificar conectividad con el backend
   useEffect(() => {
-    // Simular carga inicial
-    setTimeout(() => {
-      setLoading(false)
-    }, 1000)
+    const checkBackendHealth = async () => {
+      try {
+        const isHealthy = await apiService.healthCheck()
+        setIsOnline(isHealthy)
+        
+        if (!isHealthy) {
+          toast.error('Problema de conexión con el servidor')
+        }
+      } catch (error) {
+        setIsOnline(false)
+        toast.error('No se puede conectar con el servidor')
+      }
+    }
+
+    checkBackendHealth()
+    
+    // Verificar cada 30 segundos
+    const interval = setInterval(checkBackendHealth, 30000)
+    
+    return () => clearInterval(interval)
   }, [])
 
-  const handleLogin = async (email, password, isSignup = false, name = '', role = 'student') => {
-    // Simular proceso de autenticación
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    const selectedUser = role === 'admin' ? mockUsers.admin : mockUsers.student
-    if (isSignup && name) {
-      selectedUser.name = name
+  // Manejar cambios de red
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true)
+      toast.success('Conexión restaurada')
     }
     
-    setUser({ id: selectedUser.id, email })
-    setUserData(selectedUser)
-    toast.success(isSignup ? '¡Registro exitoso! Bienvenido' : '¡Bienvenido de vuelta!')
-    return true
-  }
+    const handleOffline = () => {
+      setIsOnline(false)
+      toast.error('Sin conexión a internet')
+    }
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
 
   const handleLogout = () => {
-    setUser(null)
-    setUserData(null)
+    logout()
     setCurrentView('dashboard')
     setSelectedCourseId(null)
     toast.success('Sesión cerrada correctamente')
@@ -104,31 +85,48 @@ export default function App() {
     setCurrentView('course')
   }
 
-  const markNotificationAsRead = (notificationId) => {
-    setNotifications(prev => 
-      prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
-    )
+  const handleNotificationRead = async (notificationId) => {
+    try {
+      await markAsRead(notificationId)
+      toast.success('Notificación marcada como leída')
+    } catch (error) {
+      toast.error('Error al marcar notificación como leída')
+    }
   }
 
-  const unreadNotifications = notifications.filter(n => !n.read).length
-
-  if (loading) {
+  // Pantalla de carga inicial
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           <p className="text-gray-600">Cargando LMS...</p>
+          {!isOnline && (
+            <div className="flex items-center space-x-2 text-orange-600">
+              <WifiOff className="h-4 w-4" />
+              <span className="text-sm">Verificando conexión...</span>
+            </div>
+          )}
         </div>
       </div>
     )
   }
 
-  if (!user) {
+  // Si no está autenticado, mostrar login
+  if (!isAuthenticated) {
     return (
-      <>
-        <LoginForm onLogin={handleLogin} />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <LoginForm />
         <Toaster position="top-right" />
-      </>
+        
+        {/* Indicador de conectividad */}
+        {!isOnline && (
+          <div className="fixed bottom-4 left-4 bg-orange-100 border border-orange-300 rounded-lg p-3 flex items-center space-x-2">
+            <WifiOff className="h-4 w-4 text-orange-600" />
+            <span className="text-sm text-orange-800">Sin conexión al servidor</span>
+          </div>
+        )}
+      </div>
     )
   }
 
@@ -159,7 +157,7 @@ export default function App() {
                   Dashboard
                 </button>
                 
-                {userData?.role === 'admin' && (
+                {user?.role === 'admin' && (
                   <button
                     onClick={() => setCurrentView('admin')}
                     className={`flex items-center px-3 py-2 rounded-md text-sm transition-colors ${
@@ -176,14 +174,24 @@ export default function App() {
             </div>
             
             <div className="flex items-center space-x-2">
+              {/* Indicador de conectividad */}
+              <div className="flex items-center space-x-1 text-sm">
+                {isOnline ? (
+                  <Wifi className="h-4 w-4 text-green-500" title="Conectado" />
+                ) : (
+                  <WifiOff className="h-4 w-4 text-red-500" title="Sin conexión" />
+                )}
+              </div>
+              
               <button
                 onClick={() => setCurrentView('notifications')}
                 className="relative p-2 text-gray-600 hover:text-gray-900 rounded-full hover:bg-gray-100 transition-colors"
+                disabled={notificationsLoading}
               >
                 <Bell className="h-5 w-5" />
-                {unreadNotifications > 0 && (
+                {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                    {unreadNotifications}
+                    {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
               </button>
@@ -193,7 +201,7 @@ export default function App() {
                 className="flex items-center space-x-2 p-2 text-gray-600 hover:text-gray-900 rounded-md hover:bg-gray-100 transition-colors"
               >
                 <User className="h-5 w-5" />
-                <span className="hidden md:block">{userData?.name}</span>
+                <span className="hidden md:block">{user?.name}</span>
               </button>
               
               <button
@@ -212,7 +220,7 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {currentView === 'dashboard' && (
           <DashboardComponent 
-            userData={userData}
+            userData={user}
             onCourseSelect={handleCourseSelect}
           />
         )}
@@ -221,29 +229,50 @@ export default function App() {
           <CourseDetail 
             courseId={selectedCourseId}
             onBack={() => setCurrentView('dashboard')}
-            userData={userData}
+            userData={user}
           />
         )}
         
         {currentView === 'profile' && (
           <UserProfileComponent 
-            userData={userData}
+            userData={user}
             onBack={() => setCurrentView('dashboard')}
           />
         )}
         
-        {currentView === 'admin' && userData?.role === 'admin' && (
+        {currentView === 'admin' && user?.role === 'admin' && (
           <AdminPanelComponent onBack={() => setCurrentView('dashboard')} />
         )}
         
         {currentView === 'notifications' && (
           <Notifications 
             notifications={notifications}
+            unreadCount={unreadCount}
+            loading={notificationsLoading}
             onBack={() => setCurrentView('dashboard')}
-            onNotificationRead={markNotificationAsRead}
+            onNotificationRead={handleNotificationRead}
+            onMarkAllAsRead={markAllAsRead}
+            onRefresh={refetchNotifications}
           />
         )}
       </main>
+
+      {/* Mensaje de conectividad para móviles */}
+      {!isOnline && (
+        <div className="md:hidden fixed bottom-4 left-4 right-4 bg-orange-100 border border-orange-300 rounded-lg p-3 flex items-center justify-center space-x-2">
+          <WifiOff className="h-4 w-4 text-orange-600" />
+          <span className="text-sm text-orange-800">Sin conexión al servidor</span>
+        </div>
+      )}
     </div>
+  )
+}
+
+// Componente raíz con AuthProvider
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   )
 }
