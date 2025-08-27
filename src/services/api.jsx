@@ -32,12 +32,19 @@ class ApiService {
 
   // Método genérico para hacer requests
   async request(endpoint, options = {}) {
-    const url = `${this.baseURL}${endpoint}`;
-    
+    let url = `${this.baseURL}${endpoint}`;
+    console.log('url', url)
+    if (endpoint .startsWith('http')) {
+      // Si el endpoint es una URL completa (para S3), usarla directamente
+      console.log('Es una URL completa')
+      url = endpoint;
+      
+    }
     const config = {
       headers: this.getHeaders(),
       ...options,
     };
+    console.log('config', config)
 
     try {
       const response = await fetch(url, config);
@@ -48,7 +55,14 @@ class ApiService {
         throw new Error('Sesión expirada. Por favor inicia sesión nuevamente.');
       }
 
-      const data = await response.json();
+      // Verifica si la respuesta tiene contenido
+      const contentType = response.headers.get('content-type');
+      let data = null;
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        data = await response.text();
+      }
 
       if (!response.ok) {
         throw new Error(data.message || `Error ${response.status}`);
@@ -165,20 +179,15 @@ class ApiService {
   async handleUpload (file) {
     if (!file) return;
     // 1. Pedir la URL prefirmada al backend
-    const res = await this.request("api/s3/presigned-url", {
-      params: {
-        filename: file.name,
-        filetype: file.type,
-      },
+    const res = await this.request("/api/s3/presigned-url", {
+      method: 'POST',
+      body: JSON.stringify({
+        fileName: file.name,
+        fileType: file.type,
+      }),
     });
-    const { url } = res.data;
-    console.log('url', url)
-    // 2. Subir el archivo a S3 usando la URL
-    // await axios.put(url, file, {
-    //   headers: {
-    //     "Content-Type": file.type,
-    //   },
-    // });
+    const { url } = res;
+    // 2. Subir el archivo a S3 usando la URL prefirmada
     const response = await this.request(url, {
       method: 'PUT',
       headers: {
@@ -186,7 +195,7 @@ class ApiService {
       },
       body: file,
     });
-    return response.data;
+    return response;
   };
 
   async getCourseById(courseId) {

@@ -4,9 +4,11 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Textarea } from './ui/textarea'
+import { toast } from 'sonner' 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { Badge } from './ui/badge'
+import apiService from '../services/api';
 import { 
   Users, 
   BookOpen, 
@@ -125,7 +127,7 @@ export function AdminPanelComponent({ onBack }: AdminPanelProps) {
     difficulty: 'Básico'
   })
 
-  const handleCreateCourse = (e: React.FormEvent) => {
+  const handleCreateCourse = async (e: React.FormEvent) => {
     e.preventDefault()
     // Aquí iría la lógica para crear el curso
     console.log('Creando curso:', newCourse)
@@ -138,7 +140,15 @@ export function AdminPanelComponent({ onBack }: AdminPanelProps) {
     formData.append('duration', newCourse.duration)
     formData.append('difficulty', newCourse.difficulty)
     if (selectedFile) {
+      console.log('selectedFile', selectedFile)
       formData.append('file', selectedFile)
+      try {
+        await apiService.handleUpload(selectedFile);
+        toast.success('Archivo subido correctamente')
+      } catch (error) {
+        toast.error('Error al subir el archivo')
+        console.log('Error al subir el archivo:', error)
+      }
     }
     setNewCourse({
       title: '',

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card } from './ui/card'
 import { Button } from './ui/button'
 import { Progress } from './ui/progress'
@@ -20,6 +20,10 @@ import {
   Calendar,
   User
 } from 'lucide-react'
+
+import { Worker, Viewer } from '@react-pdf-viewer/core'
+import '@react-pdf-viewer/core/lib/styles/index.css'
+import '@react-pdf-viewer/default-layout/lib/styles/index.css'
 
 interface CourseDetailProps {
   courseId: string
@@ -143,8 +147,10 @@ const getChapterIcon = (type: string) => {
   }
 }
 
+
 export function CourseDetail({ courseId, onBack, userData }: CourseDetailProps) {
   const [currentChapter, setCurrentChapter] = useState(1)
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const course = mockCourseData[courseId as keyof typeof mockCourseData]
 
   if (!course) {
@@ -155,7 +161,17 @@ export function CourseDetail({ courseId, onBack, userData }: CourseDetailProps) 
       </div>
     )
   }
-
+    // useEffect(() => {
+    //   // Llama a tu backend para obtener la URL prefirmada
+    //   fetch('http://localhost:3001/api/s3/presigned-url', {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({ fileName: 'lms_architecture.pdf', fileType: 'application/pdf' }),
+    //   })
+    //     .then(res => res.json())
+    //     .then(data => setPdfUrl(data.url))
+    //     .catch(() => setPdfUrl(null))
+    // }, [])
   const handleChapterComplete = (chapterId: string) => {
     // Lógica para marcar capítulo como completado
     console.log('Completando capítulo:', chapterId)
@@ -206,12 +222,15 @@ export function CourseDetail({ courseId, onBack, userData }: CourseDetailProps) 
 
       {/* Course Banner */}
       <Card className="overflow-hidden">
-        <div className="relative">
+        <div className="relative w-full h-64">
           <img 
             src={course.thumbnail} 
             alt={course.title}
             className="w-full h-64 object-cover"
           />
+          {/* <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
+            <Viewer fileUrl={pdfUrl} />
+          </Worker> */}
           <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
             {course.isEnrolled ? (
               <Button size="lg" className="bg-white text-gray-900 hover:bg-gray-100">
