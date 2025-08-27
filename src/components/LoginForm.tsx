@@ -42,7 +42,7 @@ export function LoginForm() {
         newErrors.name = 'El nombre es requerido'
       }
       if (!formData.department) {
-        newErrors.department = 'El departamento es requerido'
+        newErrors.department = 'El COE es requerido'
       }
       if (!formData.position) {
         newErrors.position = 'El cargo es requerido'
@@ -150,8 +150,8 @@ export function LoginForm() {
           </CardTitle>
           <CardDescription>
             {isSignup 
-              ? 'Crea tu cuenta en el LMS Corporativo'
-              : 'Accede a tu cuenta del LMS Corporativo'
+              ? 'Crea tu cuenta en el LMS Banco de Bogotá'
+              : 'Accede a tu cuenta del LMS Banco de Bogotá'
             }
           </CardDescription>
         </CardHeader>
@@ -179,12 +179,12 @@ export function LoginForm() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="department">Departamento</Label>
+                    <Label htmlFor="department">COE</Label>
                     <Input
                       id="department"
                       name="department"
                       type="text"
-                      placeholder="Ej: Ventas"
+                      placeholder="Ej: Testing"
                       value={formData.department}
                       onChange={handleInputChange}
                       className={errors.department ? 'border-red-500' : ''}
@@ -201,7 +201,7 @@ export function LoginForm() {
                       id="position"
                       name="position"
                       type="text"
-                      placeholder="Ej: Ejecutivo"
+                      placeholder="Ej: Analista"
                       value={formData.position}
                       onChange={handleInputChange}
                       className={errors.position ? 'border-red-500' : ''}
@@ -232,12 +232,12 @@ export function LoginForm() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Correo Electrónico</Label>
+              <Label htmlFor="email">Correo Corporativo</Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
-                placeholder="tu@empresa.com"
+                placeholder="tu@bancodebogota.com.co"
                 value={formData.email}
                 onChange={handleInputChange}
                 className={errors.email ? 'border-red-500' : ''}

@@ -1,5 +1,5 @@
 // Servicio API centralizado para comunicación con backend
-const API_BASE_URL = 'http://localhost:3001';
+const API_BASE_URL = 'https://gxaxrf4isg.execute-api.us-east-1.amazonaws.com/dev';
 
 class ApiService {
   constructor() {

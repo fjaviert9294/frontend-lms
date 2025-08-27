@@ -43,7 +43,7 @@ const mockUsers = [
   {
     id: '1',
     name: 'María González',
-    email: 'maria@empresa.com',
+    email: 'maria@bancodebogota.com.co',
     role: 'student',
     joinDate: '2024-01-15',
     coursesCompleted: 12,
@@ -54,7 +54,7 @@ const mockUsers = [
   {
     id: '2',
     name: 'Carlos Ramírez',
-    email: 'carlos@empresa.com',
+    email: 'carlos@bancodebogota.com.co',
     role: 'admin',
     joinDate: '2023-12-01',
     coursesCompleted: 25,
@@ -65,7 +65,7 @@ const mockUsers = [
   {
     id: '3',
     name: 'Ana López',
-    email: 'ana@empresa.com',
+    email: 'ana@bancodebogota.com.co',
     role: 'student',
     joinDate: '2024-02-20',
     coursesCompleted: 8,
